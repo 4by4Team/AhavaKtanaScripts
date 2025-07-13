@@ -1,7 +1,6 @@
 #target illustrator
 #include "json2.js"
 
-// var adjustedGroups = {};
 
 function safeTrim(str) {
     return (str && typeof str === "string") ? str.replace(/^\s+|\s+$/g, "") : "";
@@ -37,16 +36,6 @@ function loadFontMapFromSameFolder(filename) {
     }
     return {};
 }
-
-// function assignNamesToUnnamedGroups(doc) {
-//     var counter = 1;
-//     for (var i = 0; i < doc.groupItems.length; i++) {
-//         var group = doc.groupItems[i];
-//         if (!group.name || group.name === "") {
-//             group.name = "group_" + counter++;
-//         }
-//     }
-// }
 
 function fitPointTextToFrame(textFrame, minSize, maxSize, maxWidth, maxHeight) {
     if (!textFrame || !textFrame.textRange || textFrame.kind !== TextType.POINTTEXT) {
@@ -126,7 +115,6 @@ function countWords(str) {
 
 function replaceAllTextinDoc(doc, ordernumber, name, minSize, maxSize, fonts) {
     if (!doc) return;
-    // assignNamesToUnnamedGroups(doc);
     var smartSplitName = splitTextSmart(name);
     var tf = null;
     for (var i = 0; i < doc.textFrames.length; i++) {
@@ -147,7 +135,6 @@ function replaceAllTextinDoc(doc, ordernumber, name, minSize, maxSize, fonts) {
 function recursiveReplaceWithFonts(item, searchText, replaceText, minSize, maxSize, fonts) {
     if (item.typename === "GroupItem") {
         if (!item.name) return;
-        // if (adjustedGroups[item.name]) return;
         for (var i = 0; i < item.pageItems.length; i++) {
             recursiveReplaceWithFonts(item.pageItems[i], searchText, replaceText, minSize, maxSize, fonts);
         }

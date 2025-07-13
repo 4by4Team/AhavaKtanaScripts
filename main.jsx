@@ -48,9 +48,9 @@ function fitPointTextToFrame(textFrame, minSize, maxSize, maxWidth, maxHeight) {
     var bestSize = currentSize;
     var low = minSize;
     var high = maxSize;
-    var tolerance = 1;
+    var tolerance = 0.8;
     var steps = 0;
-    var maxSteps = 30;
+    var maxSteps = 20;
 
     var bounds = textFrame.visibleBounds;
     var frameHeight = bounds[0] - bounds[2];
@@ -77,69 +77,12 @@ function fitPointTextToFrame(textFrame, minSize, maxSize, maxWidth, maxHeight) {
     }
 
     textRange.characterAttributes.size = bestSize;
-    app.redraw();
     return bestSize;
 }
-// function fitPointTextToFrame(textFrame, minSize, maxSize, maxWidth, maxHeight) {
-//     if (!textFrame || !textFrame.textRange || textFrame.kind !== TextType.POINTTEXT) {
-//         alert("❌ לא מדובר ב-PointText תקין");
-//         return;
-//     }
-
-//     var textRange = textFrame.textRange;
-//     var currentSize = textRange.characterAttributes.size;
-//     var bestSize = currentSize;
-//     var low = minSize;
-//     var high = maxSize;
-//     var tolerance = 0.5; // דיוק
-//     var safetyMargin = 5; // מרווח ביטחון בפיקסלים
-//     var steps = 0;
-//     var maxSteps = 30;
-
-//     // נבצע כיווץ ראשוני קל אם נראה צפוף מראש
-//     textRange.characterAttributes.size = currentSize;
-//     app.redraw();
-//     var bounds = textFrame.visibleBounds;
-//     var frameWidth = bounds[3] - bounds[1];
-//     var frameHeight = bounds[0] - bounds[2];
-
-//     if (frameWidth > (maxWidth - safetyMargin) || frameHeight > (maxHeight - safetyMargin)) {
-//         // הפעלה של בינארי רגיל
-//         while ((high - low) > tolerance && steps < maxSteps) {
-//             var mid = (low + high) / 2;
-//             textRange.characterAttributes.size = mid;
-//             app.redraw();
-
-//             bounds = textFrame.visibleBounds;
-//             frameWidth = bounds[3] - bounds[1];
-//             frameHeight = bounds[0] - bounds[2];
-
-//             if (frameWidth <= (maxWidth - safetyMargin) && frameHeight <= (maxHeight - safetyMargin)) {
-//                 bestSize = mid;
-//                 low = mid;
-//             } else {
-//                 high = mid;
-//             }
-
-//             steps++;
-//         }
-//     } else {
-//         // גם אם הוא נראה "בתוך התיבה" אבל כמעט נוגע, נוריד אותו מעט
-//         if (frameWidth > (maxWidth * 0.9)) {
-//             bestSize = currentSize * 0.95;
-//         }
-//     }
-
-//     textRange.characterAttributes.size = bestSize;
-//     app.redraw();
-//     return bestSize;
-// }
-
 function splitTextSmart(text) {
     if (typeof text !== "string") {
         throw new Error("splitTextSmart קיבלה ערך שאינו מחרוזת: " + text);
     }
-
     var words = text.split(" ");
     if (words.length <= 1) return "\u200C\r" + words[0];
     if (words.length === 2) return words[0] + "\r" + words[1];
@@ -274,8 +217,9 @@ function saveDocAndCopies(baseFullPath, quantity) {
         copyFile(baseFullPath, copyPath);
     }
 }
-
 function generateStickersPages(data, templateFolder, outputFolder) {
+    var processedDocs = [];
+
     for (var i = 0; i < data.length; i++) {
         var item = data[i];
 
@@ -311,27 +255,44 @@ function generateStickersPages(data, templateFolder, outputFolder) {
             doc.close(SaveOptions.DONOTSAVECHANGES);
             continue;
         }
+
         var baseName = item.referenceNumber + " (1).pdf";
         var baseFullPath = outputFolder.fsName + "\\" + baseName;
-        var pdfOptions = new PDFSaveOptions();
-        // pdfOptions.pDFPreset = "[Illustrator Default]";
+
+        processedDocs.push({
+            doc: doc,
+            baseFullPath: baseFullPath,
+            quantity: item.quantity,
+            referenceNumber: item.referenceNumber
+        });
+    }
+
+    var pdfOptions = new PDFSaveOptions();
+    // pdfOptions.pDFPreset = "[Illustrator Default]";
+    for (var i = 0; i < processedDocs.length; i++) {
+        var entry = processedDocs[i];
         try {
-            doc.saveAs(new File(baseFullPath), pdfOptions);
-            doc.close(SaveOptions.DONOTSAVECHANGES);
+            entry.doc.saveAs(new File(entry.baseFullPath), pdfOptions);
         } catch (e) {
-            alert("❌ שגיאה בשמירת PDF עבור '" + e);
-            if (doc) doc.close(SaveOptions.DONOTSAVECHANGES);
-            continue;
+            alert("❌ שגיאה בשמירת PDF עבור '" + entry.referenceNumber + "': " + e.message);
         }
+
         try {
-            saveDocAndCopies(baseFullPath, item.quantity);
+            saveDocAndCopies(entry.baseFullPath, entry.quantity);
         } catch (e) {
-            alert("⚠️ שגיאה ביצירת עותקים עבור '" + item.referenceNumber + "' בשורה " + (i + 1));
+            alert("⚠️ שגיאה ביצירת עותקים עבור '" + entry.referenceNumber + "'");
+        }
+
+        try {
+            entry.doc.close(SaveOptions.DONOTSAVECHANGES);
+        } catch (e) {
+            alert("⚠️ שגיאה בסגירת הקובץ עבור '" + entry.referenceNumber + "'");
         }
     }
 
     alert("✅ יצירת המדבקות הסתיימה.");
 }
+
 var win = new Window("dialog", "יצירת דפי מדבקות");
 win.orientation = "column";
 win.alignChildren = ["fill", "top"];

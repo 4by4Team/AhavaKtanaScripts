@@ -2,7 +2,6 @@
 #include "json2.js"
 
 
-
 function safeTrim(str) {
     return (str && typeof str === "string") ? str.replace(/^\s+|\s+$/g, "") : "";
 }
@@ -38,49 +37,6 @@ function loadFontMapFromSameFolder(filename) {
     return {};
 }
 //קוד נוכחי
-// function fitPointTextToFrame(textFrame, minSize, maxSize, maxWidth, maxHeight) {
-//     if (!textFrame || !textFrame.textRange || textFrame.kind !== TextType.POINTTEXT) {
-//         alert("❌ לא מדובר ב-PointText תקין");
-//         return;
-//     }
-
-//     var textRange = textFrame.textRange;
-//     var currentSize = textRange.characterAttributes.size;
-//     var bestSize = currentSize;
-//     var low = minSize;
-//     var high = maxSize;
-//     var tolerance = 1;
-//     var steps = 0;
-//     var maxSteps = 30;
-
-//     var bounds = textFrame.visibleBounds;
-//     var frameHeight = bounds[0] - bounds[2];
-//     var frameWidth = bounds[3] - bounds[1];
-//     if (frameWidth > maxWidth + tolerance || frameHeight > maxHeight + tolerance) {
-//         while (high - low > 0.1 && steps < maxSteps) {
-//             var mid = (low + high) / 2;
-//             textRange.characterAttributes.size = mid;
-//             app.redraw();
-
-//             bounds = textFrame.visibleBounds;
-//             frameHeight = bounds[0] - bounds[2];
-//             frameWidth = bounds[3] - bounds[1];
-
-//             if (frameWidth <= maxWidth + tolerance && frameHeight <= maxHeight + tolerance) {
-//                 bestSize = mid;
-//                 low = mid;
-//             } else {
-//                 high = mid;
-//             }
-
-//             steps++;
-//         }
-//     }
-
-//     textRange.characterAttributes.size = bestSize;
-//     app.redraw();
-//     return bestSize;
-// }
 function fitPointTextToFrame(textFrame, minSize, maxSize, maxWidth, maxHeight) {
     if (!textFrame || !textFrame.textRange || textFrame.kind !== TextType.POINTTEXT) {
         alert("❌ לא מדובר ב-PointText תקין");
@@ -92,30 +48,24 @@ function fitPointTextToFrame(textFrame, minSize, maxSize, maxWidth, maxHeight) {
     var bestSize = currentSize;
     var low = minSize;
     var high = maxSize;
-    var tolerance = 0.5; // דיוק
-    var safetyMargin = 5; // מרווח ביטחון בפיקסלים
+    var tolerance = 1;
     var steps = 0;
     var maxSteps = 30;
 
-    // נבצע כיווץ ראשוני קל אם נראה צפוף מראש
-    textRange.characterAttributes.size = currentSize;
-    app.redraw();
     var bounds = textFrame.visibleBounds;
-    var frameWidth = bounds[3] - bounds[1];
     var frameHeight = bounds[0] - bounds[2];
-
-    if (frameWidth > (maxWidth - safetyMargin) || frameHeight > (maxHeight - safetyMargin)) {
-        // הפעלה של בינארי רגיל
-        while ((high - low) > tolerance && steps < maxSteps) {
+    var frameWidth = bounds[3] - bounds[1];
+    if (frameWidth > maxWidth + tolerance || frameHeight > maxHeight + tolerance) {
+        while (high - low > 0.1 && steps < maxSteps) {
             var mid = (low + high) / 2;
             textRange.characterAttributes.size = mid;
             app.redraw();
 
             bounds = textFrame.visibleBounds;
-            frameWidth = bounds[3] - bounds[1];
             frameHeight = bounds[0] - bounds[2];
+            frameWidth = bounds[3] - bounds[1];
 
-            if (frameWidth <= (maxWidth - safetyMargin) && frameHeight <= (maxHeight - safetyMargin)) {
+            if (frameWidth <= maxWidth + tolerance && frameHeight <= maxHeight + tolerance) {
                 bestSize = mid;
                 low = mid;
             } else {
@@ -124,17 +74,66 @@ function fitPointTextToFrame(textFrame, minSize, maxSize, maxWidth, maxHeight) {
 
             steps++;
         }
-    } else {
-        // גם אם הוא נראה "בתוך התיבה" אבל כמעט נוגע, נוריד אותו מעט
-        if (frameWidth > (maxWidth * 0.9)) {
-            bestSize = currentSize * 0.95;
-        }
     }
 
     textRange.characterAttributes.size = bestSize;
     app.redraw();
     return bestSize;
 }
+// function fitPointTextToFrame(textFrame, minSize, maxSize, maxWidth, maxHeight) {
+//     if (!textFrame || !textFrame.textRange || textFrame.kind !== TextType.POINTTEXT) {
+//         alert("❌ לא מדובר ב-PointText תקין");
+//         return;
+//     }
+
+//     var textRange = textFrame.textRange;
+//     var currentSize = textRange.characterAttributes.size;
+//     var bestSize = currentSize;
+//     var low = minSize;
+//     var high = maxSize;
+//     var tolerance = 0.5; // דיוק
+//     var safetyMargin = 5; // מרווח ביטחון בפיקסלים
+//     var steps = 0;
+//     var maxSteps = 30;
+
+//     // נבצע כיווץ ראשוני קל אם נראה צפוף מראש
+//     textRange.characterAttributes.size = currentSize;
+//     app.redraw();
+//     var bounds = textFrame.visibleBounds;
+//     var frameWidth = bounds[3] - bounds[1];
+//     var frameHeight = bounds[0] - bounds[2];
+
+//     if (frameWidth > (maxWidth - safetyMargin) || frameHeight > (maxHeight - safetyMargin)) {
+//         // הפעלה של בינארי רגיל
+//         while ((high - low) > tolerance && steps < maxSteps) {
+//             var mid = (low + high) / 2;
+//             textRange.characterAttributes.size = mid;
+//             app.redraw();
+
+//             bounds = textFrame.visibleBounds;
+//             frameWidth = bounds[3] - bounds[1];
+//             frameHeight = bounds[0] - bounds[2];
+
+//             if (frameWidth <= (maxWidth - safetyMargin) && frameHeight <= (maxHeight - safetyMargin)) {
+//                 bestSize = mid;
+//                 low = mid;
+//             } else {
+//                 high = mid;
+//             }
+
+//             steps++;
+//         }
+//     } else {
+//         // גם אם הוא נראה "בתוך התיבה" אבל כמעט נוגע, נוריד אותו מעט
+//         if (frameWidth > (maxWidth * 0.9)) {
+//             bestSize = currentSize * 0.95;
+//         }
+//     }
+
+//     textRange.characterAttributes.size = bestSize;
+//     app.redraw();
+//     return bestSize;
+// }
 
 function splitTextSmart(text) {
     if (typeof text !== "string") {
@@ -172,40 +171,19 @@ function replaceAllTextinDoc(doc, ordernumber, name, minSize, maxSize, fonts) {
     if (!doc) return;
     var smartSplitName = splitTextSmart(name);
     var tf = null;
-    var frames = doc.textFrames.everyItem().getElements();
-    for (var i = 0; i < frames.length; i++) {
-        if (frames[i].contents.indexOf("0000000") !== -1) {
-            tf = frames[i];
+    for (var i = 0; i < doc.textFrames.length; i++) {
+        if (doc.textFrames[i].contents.indexOf("0000000") !== -1) {
+            tf = doc.textFrames[i];
             break;
         }
     }
-
     if (tf) {
         tf.contents = tf.contents.replace(/0000000/g, ordernumber);
     }
-    var replacements = [{
-            search: "שמות הילד",
-            replace: name
-        },
-        {
-            search: "שמות\rהילד",
-            replace: smartSplitName
-        }
-    ];
-
     for (var i = 0; i < doc.pageItems.length; i++) {
-        for (var j = 0; j < replacements.length; j++) {
-            recursiveReplaceWithFonts(
-                doc.pageItems[i],
-                replacements[j].search,
-                replacements[j].replace,
-                minSize,
-                maxSize,
-                fonts
-            );
-        }
+        recursiveReplaceWithFonts(doc.pageItems[i], "שמות הילד", name, minSize, maxSize, fonts);
+        recursiveReplaceWithFonts(doc.pageItems[i], "שמות\rהילד", smartSplitName, minSize, maxSize, fonts);
     }
-
 }
 
 function recursiveReplaceWithFonts(item, searchText, replaceText, minSize, maxSize, fonts) {
@@ -283,7 +261,6 @@ function cleanAndReplaceWithFonts(tf, original, replacement, minSize, maxSize, f
     fitPointTextToFrame(tf, minSize, maxSize, maxWidth, maxHeight);
     centerTextVertically(tf, maxHeight);
 }
-
 function copyFile(fromPath, toPath) {
     var src = new File(fromPath);
     var dest = new File(toPath);
@@ -291,7 +268,6 @@ function copyFile(fromPath, toPath) {
         src.copy(dest);
     }
 }
-
 function saveDocAndCopies(baseFullPath, quantity) {
     for (var i = 2; i <= quantity; i++) {
         var copyPath = baseFullPath.replace("(1).pdf", "(" + i + ").pdf");
@@ -360,6 +336,8 @@ var win = new Window("dialog", "יצירת דפי מדבקות");
 win.orientation = "column";
 win.alignChildren = ["fill", "top"];
 
+// win.add("statictext", undefined, "בחרי תיקיות לעיבוד קבצי JSON:");
+
 function addFolderRow(labelText) {
     var group = win.add("group");
     group.add("statictext", undefined, labelText);
@@ -409,14 +387,10 @@ runBtn.onClick = function() {
     }
 
     win.close();
-    var progressWin = new Window("palette", "עיבוד קבצים");
-    var progressBar = progressWin.add("progressbar", undefined, 0, jsonFiles.length);
-    progressBar.preferredSize = [300, 20];
-    progressWin.show();
 
     for (var i = 0; i < jsonFiles.length; i++) {
         var file = jsonFiles[i];
-        progressBar.value = i;
+
         if (i > 0) {
             var confirmWin = new Window("dialog", "אישור מעבר לקובץ הבא");
             confirmWin.add("statictext", undefined, "לעבד את הקובץ הבא?\n" + file.name);
@@ -460,7 +434,6 @@ runBtn.onClick = function() {
     }
 
     alert("✅ כל קבצי ה־JSON עובדו בהצלחה.");
-    progressWin.close();
 };
 
 win.center();

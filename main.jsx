@@ -1,7 +1,12 @@
 #target illustrator
 #include "json2.js"
 
-var adjustedGroups = {};
+// var adjustedGroups = {};
+
+function safeTrim(str) {
+    return (str && typeof str === "string") ? str.replace(/^\s+|\s+$/g, "") : "";
+}
+
 function loadFontMapFromSameFolder(filename) {
     var scriptFolder = File($.fileName).parent;
     var fontFile = new File(scriptFolder + "/" + filename);
@@ -20,10 +25,10 @@ function loadFontMapFromSameFolder(filename) {
         var result = {};
         for (var i = 0; i < fontList.length; i++) {
             var item = fontList[i];
-            var modelName = item["דגם"].trim();
+            var modelName = safeTrim(item["דגם"]);
             result[modelName] = {
-                hebrew: item["פונט עברית"].trim(),
-                english: item["פונט אנגלית"].trim()
+                hebrew: safeTrim(item["פונט עברית"]),
+                english: safeTrim(item["פונט אנגלית"])
             };
         }
         return result;
@@ -33,15 +38,15 @@ function loadFontMapFromSameFolder(filename) {
     return {};
 }
 
-function assignNamesToUnnamedGroups(doc) {
-    var counter = 1;
-    for (var i = 0; i < doc.groupItems.length; i++) {
-        var group = doc.groupItems[i];
-        if (!group.name || group.name === "") {
-            group.name = "group_" + counter++;
-        }
-    }
-}
+// function assignNamesToUnnamedGroups(doc) {
+//     var counter = 1;
+//     for (var i = 0; i < doc.groupItems.length; i++) {
+//         var group = doc.groupItems[i];
+//         if (!group.name || group.name === "") {
+//             group.name = "group_" + counter++;
+//         }
+//     }
+// }
 
 function fitPointTextToFrame(textFrame, minSize, maxSize, maxWidth, maxHeight) {
     if (!textFrame || !textFrame.textRange || textFrame.kind !== TextType.POINTTEXT) {
@@ -119,9 +124,9 @@ function countWords(str) {
     return str.replace(/^\s+|\s+$/g, "").split(/\s+/).length;
 }
 
-unction replaceAllTextinDoc(doc, ordernumber, name, minSize, maxSize, fonts) {
+function replaceAllTextinDoc(doc, ordernumber, name, minSize, maxSize, fonts) {
     if (!doc) return;
-    assignNamesToUnnamedGroups(doc);
+    // assignNamesToUnnamedGroups(doc);
     var smartSplitName = splitTextSmart(name);
     var tf = null;
     for (var i = 0; i < doc.textFrames.length; i++) {
@@ -139,11 +144,10 @@ unction replaceAllTextinDoc(doc, ordernumber, name, minSize, maxSize, fonts) {
     }
 }
 
-// 4. תעדכן את recursiveReplace שתקבל גם את המפה ותעביר הלאה:
 function recursiveReplaceWithFonts(item, searchText, replaceText, minSize, maxSize, fonts) {
     if (item.typename === "GroupItem") {
         if (!item.name) return;
-        if (adjustedGroups[item.name]) return;
+        // if (adjustedGroups[item.name]) return;
         for (var i = 0; i < item.pageItems.length; i++) {
             recursiveReplaceWithFonts(item.pageItems[i], searchText, replaceText, minSize, maxSize, fonts);
         }
@@ -159,7 +163,7 @@ function recursiveReplaceWithFonts(item, searchText, replaceText, minSize, maxSi
     }
 }
 
-// 5. תעדכן את cleanAndReplace שתקבל את הפונטים ותשנה בהתאם
+
 function cleanAndReplaceWithFonts(tf, original, replacement, minSize, maxSize, fonts) {
     if (!tf || !tf.textRange) {
         alert("❌ tf או tf.textRange לא קיימים");
@@ -202,7 +206,7 @@ function cleanAndReplaceWithFonts(tf, original, replacement, minSize, maxSize, f
     try {
         textFont = app.textFonts.getByName(fontName);
     } catch (e) {
-        alert("⚠️ פונט לא נמצא במערכת: " + fontName + " - משתמש בברירת מחדל");
+        // alert("⚠️ פונט לא נמצא במערכת: " + fontName + " - משתמש בברירת מחדל");
         textFont = range.characterAttributes.textFont; // משאיר כמו שהיה
     }
 
@@ -269,7 +273,7 @@ function generateStickersPages(data, templateFolder, outputFolder) {
         };
 
         try {
-            replaceAllTextinDoc(doc, item.referenceNumber, item.name, 2, 15, fonts);
+            replaceAllTextinDoc(doc, item.referenceNumber, item.name, 6, 15, fonts);
         } catch (e) {
             alert("❌ שגיאה בהחלפת טקסט עבור '" + item.name + "' בשורה " + (i + 1));
             doc.close(SaveOptions.DONOTSAVECHANGES);
@@ -278,7 +282,7 @@ function generateStickersPages(data, templateFolder, outputFolder) {
         var baseName = item.referenceNumber + " (1).pdf";
         var baseFullPath = outputFolder.fsName + "\\" + baseName;
         var pdfOptions = new PDFSaveOptions();
-        pdfOptions.pDFPreset = "[Illustrator Default]";
+        // pdfOptions.pDFPreset = "[Illustrator Default]";
         try {
             doc.saveAs(new File(baseFullPath), pdfOptions);
             doc.close(SaveOptions.DONOTSAVECHANGES);
@@ -296,12 +300,11 @@ function generateStickersPages(data, templateFolder, outputFolder) {
 
     alert("✅ יצירת המדבקות הסתיימה.");
 }
-
 var win = new Window("dialog", "יצירת דפי מדבקות");
 win.orientation = "column";
 win.alignChildren = ["fill", "top"];
 
-win.add("statictext", undefined, "בחרי תיקיות לעיבוד קבצי JSON:");
+// win.add("statictext", undefined, "בחרי תיקיות לעיבוד קבצי JSON:");
 
 function addFolderRow(labelText) {
     var group = win.add("group");

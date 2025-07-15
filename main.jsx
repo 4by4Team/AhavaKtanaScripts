@@ -1,11 +1,9 @@
 #target illustrator
 #include "json2.js"
 
-
 function safeTrim(str) {
     return (str && typeof str === "string") ? str.replace(/^\s+|\s+$/g, "") : "";
 }
-
 function loadFontMapFromSameFolder(filename) {
     var scriptFolder = File($.fileName).parent;
     var fontFile = new File(scriptFolder + "/" + filename);
@@ -36,7 +34,6 @@ function loadFontMapFromSameFolder(filename) {
     }
     return {};
 }
-//קוד נוכחי
 function fitPointTextToFrame(textFrame, minSize, maxSize, maxWidth, maxHeight) {
     if (!textFrame || !textFrame.textRange || textFrame.kind !== TextType.POINTTEXT) {
         alert("❌ לא מדובר ב-PointText תקין");
@@ -79,6 +76,7 @@ function fitPointTextToFrame(textFrame, minSize, maxSize, maxWidth, maxHeight) {
     textRange.characterAttributes.size = bestSize;
     return bestSize;
 }
+
 function splitTextSmart(text) {
     if (typeof text !== "string") {
         throw new Error("splitTextSmart קיבלה ערך שאינו מחרוזת: " + text);
@@ -146,16 +144,15 @@ function recursiveReplaceWithFonts(item, searchText, replaceText, minSize, maxSi
     }
 }
 
-
 function cleanAndReplaceWithFonts(tf, original, replacement, minSize, maxSize, fonts) {
     if (!tf || !tf.textRange) {
-        alert("❌ tf או tf.textRange לא קיימים");
         return;
     }
 
-    var isMultiline = tf.contents.indexOf("\r") >= 0;
+    // var isMultiline = tf.contents.indexOf("\r") >= 0;
+    // var newText = isMultiline ? splitTextSmart(replacement) : replacement;
+    var isMultiline = original.indexOf("\r") >= 0;
     var newText = isMultiline ? splitTextSmart(replacement) : replacement;
-
     var pattern = original.replace(/\s+/g, isMultiline ? "\\s*\\r?\\s*" : "\\s+");
     var regex = new RegExp(pattern, "g");
     var fullRange = tf.textRange;
@@ -163,7 +160,6 @@ function cleanAndReplaceWithFonts(tf, original, replacement, minSize, maxSize, f
     var originalColor = fullRange.characterAttributes.fillColor;
     var replaced = tf.contents.replace(regex, newText);
     if (replaced === tf.contents) {
-        alert("❌ לא נמצאה התאמה לשם '" + original + "'");
         return;
     }
 
@@ -189,7 +185,6 @@ function cleanAndReplaceWithFonts(tf, original, replacement, minSize, maxSize, f
     try {
         textFont = app.textFonts.getByName(fontName);
     } catch (e) {
-        // alert("⚠️ פונט לא נמצא במערכת: " + fontName + " - משתמש בברירת מחדל");
         textFont = range.characterAttributes.textFont; // משאיר כמו שהיה
     }
 
@@ -202,39 +197,29 @@ function cleanAndReplaceWithFonts(tf, original, replacement, minSize, maxSize, f
     app.redraw();
 
     fitPointTextToFrame(tf, minSize, maxSize, maxWidth, maxHeight);
-    centerTextVertically(tf, maxHeight);
+    centerTextVertically(tf, maxHeight); {}
 }
-function copyFile(fromPath, toPath) {
-    var src = new File(fromPath);
-    var dest = new File(toPath);
-    if (src.exists) {
-        src.copy(dest);
-    }
-}
-function saveDocAndCopies(baseFullPath, quantity) {
-    for (var i = 2; i <= quantity; i++) {
-        var copyPath = baseFullPath.replace("(1).pdf", "(" + i + ").pdf");
-        copyFile(baseFullPath, copyPath);
-    }
-}
-function generateStickersPages(data, templateFolder, outputFolder) {
-    var processedDocs = [];
 
+function generateStickersPages(data, templateFolder, outputFolder) {
     for (var i = 0; i < data.length; i++) {
         var item = data[i];
 
-        if (!item.name || !item.itemName || !item.referenceNumber) {
+        // בדיקת שדות חובה
+        if (!item.name || !item.itemName || !item.referenceNumber || !item.quantity) {
             alert("❌ נתונים חסרים בשורה " + (i + 1));
             continue;
         }
 
+        // יצירת נתיב לקובץ תבנית
         var templatePath = templateFolder.fsName + "\\" + item.itemName + ".ai";
         var templateFile = new File(templatePath);
+
         if (!templateFile.exists) {
             alert("❌ לא נמצאה תבנית עבור '" + item.itemName + "' בשורה " + (i + 1));
             continue;
         }
 
+        // פתיחת התבנית
         var doc;
         try {
             doc = app.open(templateFile);
@@ -243,11 +228,27 @@ function generateStickersPages(data, templateFolder, outputFolder) {
             continue;
         }
 
-        var fonts = fontMap[item.itemName] || {
-            hebrew: "ArialHebrew",
-            english: "Arial"
-        };
+        // קביעת פונטים לפי המפה
+        var cleanName = item.itemName.replace(/^\s+|\s+$/g, '');
 
+        var fonts = null;
+
+        for (var key in fontMap) {
+            if (cleanName.indexOf(key) === 0) {
+                fonts = fontMap[key];
+                break;
+            }
+        }
+
+        if (!fonts) {
+            fonts = {
+                hebrew: "ArialHebrew",
+                english: "Arial"
+            };
+        }
+
+
+        // החלפת טקסט
         try {
             replaceAllTextinDoc(doc, item.referenceNumber, item.name, 6, 15, fonts);
         } catch (e) {
@@ -256,48 +257,38 @@ function generateStickersPages(data, templateFolder, outputFolder) {
             continue;
         }
 
-        var baseName = item.referenceNumber + " (1).pdf";
+        // שם הקובץ כולל הכמות
+        var baseName = item.referenceNumber + " (" + item.quantity + ").pdf";
         var baseFullPath = outputFolder.fsName + "\\" + baseName;
 
-        processedDocs.push({
-            doc: doc,
-            baseFullPath: baseFullPath,
-            quantity: item.quantity,
-            referenceNumber: item.referenceNumber
-        });
-    }
+        // הגדרות PDF
+        var pdfOptions = new PDFSaveOptions();
+        pdfOptions.pDFPreset = "[Illustrator Default]";
 
-    var pdfOptions = new PDFSaveOptions();
-    // pdfOptions.pDFPreset = "[Illustrator Default]";
-    for (var i = 0; i < processedDocs.length; i++) {
-        var entry = processedDocs[i];
+        // שמירה
         try {
-            entry.doc.saveAs(new File(entry.baseFullPath), pdfOptions);
+            doc.saveAs(new File(baseFullPath), pdfOptions);
         } catch (e) {
-            alert("❌ שגיאה בשמירת PDF עבור '" + entry.referenceNumber + "': " + e.message);
+            alert("❌ שגיאה בשמירת PDF עבור '" + item.referenceNumber + "': " + e.message);
+            doc.close(SaveOptions.DONOTSAVECHANGES);
+            continue;
         }
 
+        // סגירה
         try {
-            saveDocAndCopies(entry.baseFullPath, entry.quantity);
+            doc.close(SaveOptions.DONOTSAVECHANGES);
         } catch (e) {
-            alert("⚠️ שגיאה ביצירת עותקים עבור '" + entry.referenceNumber + "'");
-        }
-
-        try {
-            entry.doc.close(SaveOptions.DONOTSAVECHANGES);
-        } catch (e) {
-            alert("⚠️ שגיאה בסגירת הקובץ עבור '" + entry.referenceNumber + "'");
+            alert("⚠️ שגיאה בסגירת הקובץ עבור '" + item.referenceNumber + "': " + e.message);
         }
     }
 
-    alert("✅ יצירת המדבקות הסתיימה.");
+    alert("✅ יצירת המדבקות הסתיימה בהצלחה.");
 }
+
 
 var win = new Window("dialog", "יצירת דפי מדבקות");
 win.orientation = "column";
 win.alignChildren = ["fill", "top"];
-
-// win.add("statictext", undefined, "בחרי תיקיות לעיבוד קבצי JSON:");
 
 function addFolderRow(labelText) {
     var group = win.add("group");
